@@ -52,6 +52,21 @@ Then copy the kernel over to the RPi.
     host$ scp linux/arch/arm/boot/Image pi@rpi:/home/pi
     rpi$ sudo cp Image /boot/kernel.img
 
+Now go into the kernel-module directory and use the foo.sh script to build the
+kernel module. If you just run "make" you'll get a kernel module for your host
+machine and it won't work on the RPi. Then copy it over and run it
+
+    host$ scp  pi@rpi:/home/pi
+    rpi$ sudo insmod hello-1.ko
+    rpi$ dmesg     # Look for "Hello world" message
+    rpi$ sudo rmmod hello-1
+    rpi$ dmesg     # Look for "Goodbye world" message
+
+When you install the char\_dev driver, you'll want to define a /dev node for it:
+
+    rpi$ sudo mknod /dev/char\_dev c 100 0
+    rpi$ sudo chmod 777 /dev/char\_dev
+
 Installing NodeJS on the RPi
 ----------------------------
 
