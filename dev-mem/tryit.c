@@ -66,12 +66,45 @@ struct gpio_registers {
 	uint32_t gppudclk1;
 };
 
+// see register map, page 8 of PDF
+struct aux_peripherals {
+	uint32_t aux_irq;
+	uint32_t aux_enables;
+	uint32_t reserved_1[14];
+	uint32_t aux_mu_io_reg;
+	uint32_t aux_mu_ier_reg;
+	uint32_t aux_mu_iir_reg;
+	uint32_t aux_mu_lcr_reg;
+	uint32_t aux_mu_mcr_reg;
+	uint32_t aux_mu_lsr_reg;
+	uint32_t aux_mu_msr_reg;
+	uint32_t aux_mu_scratch;
+	uint32_t aux_mu_cntl_reg;
+	uint32_t aux_mu_stat_reg;
+	uint32_t aux_mu_baud_reg;
+	uint32_t reserved_2[20];
+	uint32_t aux_spi0_cntl0_reg;
+	uint32_t aux_spi0_cntl1_reg;
+	uint32_t aux_spi0_stat_reg;
+	uint32_t reserved_3;
+	uint32_t aux_spi0_io_reg;
+	uint32_t aux_spi0_peek_reg;
+	uint32_t reserved_4[10];
+	uint32_t aux_spi1_cntl0_reg;
+	uint32_t aux_spi1_cntl1_reg;
+	uint32_t aux_spi1_stat_reg;
+	uint32_t reserved_5;
+	uint32_t aux_spi1_io_reg;
+	uint32_t aux_spi1_peek_reg;
+};
+
 static volatile struct gpio_registers *gpio;
+static volatile struct aux_peripherals *aux;
 
 
 int main(int argc, char **argv)
 {
-        int fd ;
+        int fd, i;
 
         //Obtain handle to physical memory
         if ((fd = open ("/dev/mem", O_RDWR | O_SYNC) ) < 0) {
@@ -88,7 +121,19 @@ int main(int argc, char **argv)
 					      GPIO_BASE);
 
         if ((int32_t) gpio < 0) {
-                printf("Mmap failed: %s\n", strerror(errno));
+                printf("GPIO mmap failed: %s\n", strerror(errno));
+                return -1;
+        }
+
+        aux = (struct aux_peripherals *) mmap(0,
+					      getpagesize(),
+					      PROT_READ|PROT_WRITE,
+					      MAP_SHARED,
+					      fd,
+					      AUX_PERIPHS);
+
+        if ((int32_t) aux < 0) {
+                printf("AUX mmap failed: %s\n", strerror(errno));
                 return -1;
         }
 
@@ -100,11 +145,13 @@ int main(int argc, char **argv)
 	gpio->gpfsel1 &= ~(7 << 21);
 	gpio->gpfsel1 |=  (1 << 21);
 
-        //toggle gpio17 every second
-        while (1) {
-                gpio->gpset0 = 1 << 17;    //set the pin high
-                sleep(1);
-                gpio->gpclr0 = 1 << 17;    //set the pin to low
-                sleep(1);
-        }
+        //toggle gpio17 every second, just long enough to run over to the scope and make sure it works
+	for (i = 0; i < 10; i++) {
+		gpio->gpset0 = 1 << 17;    //set the pin high
+		sleep(1);
+		gpio->gpclr0 = 1 << 17;    //set the pin to low
+		sleep(1);
+	}
+
+	aux->aux_mu_baud_reg = 999;    // 31.25 kbaud for MIDI, see PDF section 2.2.1 page 11
 }
