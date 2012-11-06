@@ -146,12 +146,24 @@ int main(int argc, char **argv)
 	gpio->gpfsel1 |=  (1 << 21);
 
         //toggle gpio17 every second, just long enough to run over to the scope and make sure it works
+	/*
 	for (i = 0; i < 10; i++) {
 		gpio->gpset0 = 1 << 17;    //set the pin high
 		sleep(1);
 		gpio->gpclr0 = 1 << 17;    //set the pin to low
 		sleep(1);
 	}
+	*/
 
+	aux->aux_enables = 1;
+	aux->aux_mu_ier_reg = 0;
+	aux->aux_mu_cntl_reg = 0;
+	aux->aux_mu_lcr_reg = 3;
+	aux->aux_mu_mcr_reg = 0;
+	aux->aux_mu_ier_reg = 0;
+	aux->aux_mu_iir_reg = 0xc6;
+	// put32(aux_mu_baud_reg,270);
 	aux->aux_mu_baud_reg = 999;    // 31.25 kbaud for MIDI, see PDF section 2.2.1 page 11
+
+	aux->aux_mu_cntl_reg = 3;
 }
